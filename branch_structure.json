@@ -1,0 +1,27 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "fix/issue-1420-test-sep10-delete-the-hollow-sign-exchange",
+    "fix/issue-1449-test-freighter-merge-tests-hooks-usefreighter",
+    "fix/issue-1517-sep38-document-the-sep-38-workaround-realized",
+    "fix/issue-1526-ops-fix-the-readme-tech-stack-version-roadmap",
+    "main",
+    "origin"
+  ],
+  "parent": {
+    "fix/issue-1420-test-sep10-delete-the-hollow-sign-exchange": "main",
+    "fix/issue-1449-test-freighter-merge-tests-hooks-usefreighter": "main",
+    "fix/issue-1517-sep38-document-the-sep-38-workaround-realized": "main",
+    "fix/issue-1526-ops-fix-the-readme-tech-stack-version-roadmap": "main",
+    "main": null,
+    "origin": "main"
+  },
+  "order": [
+    "main",
+    "fix/issue-1420-test-sep10-delete-the-hollow-sign-exchange",
+    "fix/issue-1449-test-freighter-merge-tests-hooks-usefreighter",
+    "fix/issue-1517-sep38-document-the-sep-38-workaround-realized",
+    "fix/issue-1526-ops-fix-the-readme-tech-stack-version-roadmap",
+    "origin"
+  ]
+}
