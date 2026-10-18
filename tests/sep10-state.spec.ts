@@ -1,11 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Networks, Keypair, WebAuth } from '@stellar/stellar-sdk';
-import {
-  fetchSep10Challenge,
-  validateSep10Challenge,
-  ChallengeError,
-} from '@/lib/stellar/sep10';
+import { fetchSep10Challenge, validateSep10Challenge, ChallengeError } from '@/lib/stellar/sep10';
 import { buildValidChallenge } from './fixtures/sep10-challenge';
 
 vi.mock('@stellar/freighter-api', () => {
