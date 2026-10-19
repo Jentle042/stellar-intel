@@ -91,7 +91,7 @@ flow and the Soroban oracle wiring live in
 | Framework     | Next.js 16, React 19, TypeScript |
 | Styling       | Tailwind CSS v4                  |
 | Data fetching | SWR                              |
-| Blockchain    | `@stellar/stellar-sdk` v16       |
+| Blockchain    | `@stellar/stellar-sdk` v17       |
 | Deployment    | Vercel                           |
 
 ---
@@ -133,12 +133,12 @@ npm run build
 ## Environment Variables
 
 Copy `.env.example` to `.env.local` and set the following variables. The server
-validates these at boot in `lib/config.ts` and fails fast on a missing or
+validates these at boot in `lib/env.ts` and fails fast on a missing or
 malformed required value.
 
 | Variable                         | Required | Default                                      | Description                                                               |
 | -------------------------------- | -------- | -------------------------------------------- | ------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_STELLAR_NETWORK`    | Yes      | `mainnet`                                    | Stellar network (`mainnet` or `testnet`).                                 |
+| `NEXT_PUBLIC_STELLAR_NETWORK`    | Yes      | `mainnet`                                    | Stellar network (`mainnet`, `testnet` or `futurenet`).                    |
 | `NEXT_PUBLIC_HORIZON_URL`        | Yes      | `https://horizon.stellar.org`                | Horizon server URL.                                                       |
 | `NEXT_PUBLIC_USDC_ISSUER`        | Yes      | —                                            | USDC issuer public key (`G…`, 56 chars). Validated; no default.           |
 | `NEXT_PUBLIC_STELLAR_EXPERT_URL` | No       | `https://api.stellar.expert/explorer/public` | Stellar Expert API base for transaction links.                            |
@@ -152,6 +152,29 @@ for mainnet). To point at the Stellar testnet, set:
 NEXT_PUBLIC_STELLAR_NETWORK=testnet
 NEXT_PUBLIC_HORIZON_URL=https://horizon-testnet.stellar.org
 ```
+
+### Server-side / production
+
+`.env.example` also assigns the variables below. Where Required is not No, it names the part of
+the stack that needs the variable.
+
+| Variable                  | Required            | Description                                                                                                                         |
+| ------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_INTENT_FLOW` | No                  | Feature flag: the signed-intent off-ramp path is off unless set to `true`.                                                          |
+| `ROUTING_STRATEGY`        | No                  | Router selection strategy: `first-match` (default) or `scored` (multi-factor solver).                                               |
+| `FEE_BUDGET_PCT`          | No                  | Router fee budget as a percentage of the amount, e.g. `1` for 1%. `lib/env.ts` uses `100` when unset.                               |
+| `SOROSWAP_API_KEY`        | Swap hops           | Soroswap aggregator API key for the swap hop connector, which throws `SoroswapConfigError` when it is unset.                        |
+| `CRON_SECRET`             | Reputation pipeline | Shared secret required by the cron-triggered routes (publisher tick, reconcile, refresh).                                           |
+| `REPUTATION_BACKEND`      | No                  | Reputation store backend: `sqlite` (default) or `postgres`.                                                                         |
+| `DATABASE_URL`            | Reputation pipeline | Postgres connection string for the reputation store. Setting it implies the postgres backend.                                       |
+| `LOG_LEVEL`               | No                  | Pino log level: `trace`, `debug`, `info`, `warn` or `error` (default `info`).                                                       |
+| `METRICS_RESET_WINDOW_MS` | No                  | Metrics rolling-window length in milliseconds (default `3600000`, one hour).                                                        |
+| `ORACLE_CONTRACT_ID`      | Publisher           | Soroban reputation oracle contract address, required by `scripts/init-oracle-registry.ts` and the publisher.                        |
+| `STELLAR_NETWORK`         | Publisher           | Network the publisher signs against: `mainnet` or `testnet`. No default, since it signs real transactions.                          |
+| `PUBLISHER_SECRET`        | Publisher           | Secret key of an account registered as a publisher on the oracle contract, required by the publisher CLI and `/api/publisher/tick`. |
+
+[`docs/ARCHITECTURE.md` §11](docs/ARCHITECTURE.md#11-environment-variable-schema) is the
+exhaustive list, including the optional variables left commented out in `.env.example`.
 
 ---
 
@@ -170,13 +193,13 @@ The full doc surface lives under [`docs/`](docs/). Start with:
 | [docs/POSITIONING.md](docs/POSITIONING.md)             | What this is and is not; ROZO and SDF Anchor Directory, with checkable evidence.                  |
 | [docs/PROPOSAL.md](docs/PROPOSAL.md)                   | Longer-form project thesis: what this is for, what it stopped claiming, and how it is sequenced.  |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)           | System diagram, intent router, Soroban oracle, MCP/agent surface, SEP-10/24/38 flow.              |
-| [docs/ROADMAP.md](docs/ROADMAP.md)                     | Milestone waves v1.0 → v5, with tickable per-wave scope.                                          |
+| [docs/ROADMAP.md](docs/ROADMAP.md)                     | Milestone waves v1.0 → v6, with tickable per-wave scope.                                          |
 | [docs/INTENT_API.md](docs/INTENT_API.md)               | Intent schema, signing rules, replay protection, `curl` + TS snippets.                            |
 | [docs/GRAPHQL_API.md](docs/GRAPHQL_API.md)             | Additive GraphQL surface over the same REST v1 resources — schema, example queries, error shape.  |
 | [docs/ANCHOR_REPUTATION.md](docs/ANCHOR_REPUTATION.md) | Scoring methodology, composite formula, dispute process.                                          |
 | [docs/ORACLE_SPEC.md](docs/ORACLE_SPEC.md)             | Soroban contract interface, consumer examples, publisher whitelist policy.                        |
 | [docs/ORACLE_MIGRATION.md](docs/ORACLE_MIGRATION.md)   | v1 → v2 corridor storage migration: runbook, idempotency, and the v1 compatibility guarantee.     |
-| [docs/MCP.md](docs/MCP.md)                             | Tool list, `npx tsx scripts/mcp/server.ts` run instructions, example prompts, agent-safety notes. |
+| [docs/MCP.md](docs/MCP.md)                             | Tool list, hosted `POST /api/mcp` endpoint, local `npx tsx scripts/mcp/server.ts` dev server, example prompts, agent-safety notes. |
 | [docs/AGENT_POSITIONING.md](docs/AGENT_POSITIONING.md) | How agent builders should route between Stellar Intel (anchors/fiat exit) and ROZO (chains).      |
 | [docs/SECURITY.md](docs/SECURITY.md)                   | Non-custodial guarantee, key handling, disclosure email, supply-chain policy.                     |
 | [docs/FAQ.md](docs/FAQ.md)                             | "Is this custodial?", "what if an anchor fails?", "how are we different?".                        |
