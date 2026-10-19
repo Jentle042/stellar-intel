@@ -159,6 +159,8 @@ are in `lib/reputation/migrations/`.
 | `GET /api/reputation/probe-coverage`                 | 90-day probe-accumulation progress JSON.                                                                                       |
 | `GET /api/reputation/[anchor]`                       | Current score + bands for one anchor.                                                                                          |
 | `GET /api/reputation/[anchor]/history?window=…`      | Historical score series.                                                                                                       |
+| `GET /api/reputation/[anchor]/quote-gap?window=…`    | Quoted-vs-landed gap statistics over the requested window (Q38003).                                                            |
+| `GET /api/reputation/[anchor]/price-history?window=…`| Realized-rate price history derived from settled outcomes (Q38001).                                                            |
 | `POST /api/reputation/append`                        | Append a signed outcome tuple.                                                                                                 |
 | `POST /api/reputation/dispute`                       | File a dispute against an outcome.                                                                                             |
 | `GET\|POST /api/reputation/reconcile`                | Reconcile aggregates (maintenance).                                                                                            |

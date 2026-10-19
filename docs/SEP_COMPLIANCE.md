@@ -33,6 +33,20 @@ The difference: **SEP-24** = the anchor hosts the KYC/checkout page (we embed a 
 
 Tracking: batch-2 issues `#B001–#B025` (see [CONTRIBUTING.md](../CONTRIBUTING.md#issue-numbering)).
 
+## SEP-38 readiness
+
+SEP-38 readiness is the per-anchor, per-corridor check of whether a firm quote can actually be
+obtained before we show a rate. It is surfaced in two places:
+
+- **UI:** [`/anchors/sep38`](../app/anchors/sep38/page.tsx) — the readiness view for registered anchors.
+- **API:** [`/api/v1/sep38/readiness`](../app/api/v1/sep38/readiness/route.ts) — the same data as JSON.
+
+Readiness reflects `ANCHOR_QUOTE_SERVER` presence in the anchor's `stellar.toml` plus a live probe
+of the quote server's `/info`. When readiness is false for a corridor, the rate shown is indicative
+(Tier 2 or Tier 3 above) and is labelled as such — see
+["Quotes, estimates and what actually lands"](../app/methodology/page.tsx) for how firm vs
+indicative pricing is scored.
+
 ## Per-anchor SEP support matrix
 
 Registered anchors ([`constants/anchors.ts`](../constants/anchors.ts)). Capability is read from each anchor's `stellar.toml`; refresh with `node scripts/anchor-survey.mjs`.
@@ -75,7 +89,10 @@ independently, so that is flagged in `constants/anchors.ts` rather than resolved
 - **nTokens** (`ntokens.com`) services the BRL corridor via `ntokens-box.bpventures.us`. Its TOML advertises `TRANSFER_SERVER_SEP0024`, a `DIRECT_PAYMENT_SERVER` (SEP-31), and `TRANSFER_SERVER` (SEP-6). SEP-38 and SEP-12 are not advertised.
 - **MoneyGram** serves the widest corridor set (five currencies) exclusively through SEP-24. It does not publish a SEP-6 transfer server or an anchor quote server.
 - SEP-12 columns in the matrix above reflect the anchor's advertised capability in `stellar.toml`. The in-app KYC form wires to each anchor's `/customer` endpoint at execution time.
+- **SEP-38 readiness** is checked per anchor and per corridor; a registered anchor advertising a
+  quote server does not guarantee a firm quote for every corridor (see the Zeam ZAR note above).
+  Consult `/anchors/sep38` or `/api/v1/sep38/readiness` before assuming a firm quote exists.
 
 ## Fleet survey
 
-`scripts/anchor-survey.mjs` builds its candidate set from every source — the anchor registry, the full stellar.expert directory (no `anchor` tag required), the home domains of top stellar.expert assets and the SDF Anchor Directory — then classifies each domain by SEP support. Latest documented snapshot: 92 directory-tagged → 41 reachable toml → 11 transfer-capable / 30 issuer-only; 51 unreachable. See [`maintainer.md`](../maintainer.md) §11.
+`scripts/anchor-survey.mjs` builds its candidate set from every source — the anchor registry, the full stellar.expert directory (no `anchor` tag required), the home domains of top stellar.expert assets and the SDF Anchor Directory — then classifies each domain by SEP support. Latest documented snapshot: 95 directory-tagged → 36 reachable toml → 10 transfer-capable / 26 issuer-only; 59 unreachable. See the [anchor exclusions list](anchors/exclusions.md).
