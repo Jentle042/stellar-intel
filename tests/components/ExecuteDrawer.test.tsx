@@ -1,8 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { configure, render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { ExecuteDrawer } from '@/components/offramp/ExecuteDrawer';
 import type { AnchorRate } from '@/types';
 import { acceptTerms, clearAcceptance } from '@/lib/consent';
+
+// This spec drives the whole off-ramp flow, and its sep10 mock calls
+// `importActual`, which loads the real Stellar SDK on first use. On a cold or
+// loaded runner that transform alone can exceed testing-library's default 1000 ms
+// `waitFor` limit, which made tests here fail intermittently (about 1 run in 8
+// locally) with "expected vi.fn() to be called" or "Unable to find an element".
+// The default test timeout is 15 s, so there is plenty of headroom.
+configure({ asyncUtilTimeout: 5000 });
 
 // ─── Module mocks ─────────────────────────────────────────────────────────────
 
@@ -496,6 +504,12 @@ describe('ExecuteDrawer', () => {
     // In authenticating/initiating step
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).not.toHaveBeenCalled();
+
+    // Wait for the KYC step to mount before settling it. Dispatching the message
+    // as soon as initiateWithdraw has merely been *called* loses the event on a
+    // slow runner, because the drawer has not reached 'kyc' yet and never gets
+    // to 'done'. The happy-path test waits the same way.
+    await waitFor(() => expect(screen.getByTestId('kyc-iframe-mock')).toBeInTheDocument());
 
     // Settle KYC to reach done step
     act(() => {

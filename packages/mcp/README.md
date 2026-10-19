@@ -10,7 +10,7 @@ and served over stdio (the default) or streamable HTTP.
 ## Status
 
 `createServer()` (`src/server.ts`) stands up the MCP server and registers
-three tools, all backed directly by
+eight tools, all backed directly by
 [`lib/mcp/offramp.ts`](https://github.com/ezedike-evan/stellar-intel/blob/main/lib/mcp/offramp.ts)
 in the main app (imported at build time — see below), so this package and the
 in-repo dev server at
@@ -32,6 +32,25 @@ share the exact same logic:
   to Horizon; Stellar Intel never signs anything — the calling agent's own
   wallet signs the intent hash and the transaction before calling this tool.
   It is the only tool in this server marked destructive in `tools/list`.
+- `intel.corridors` — lists every corridor Stellar Intel currently surfaces,
+  with its id, display name, source asset, destination fiat currency, country,
+  and the anchors that serve it. Call this before any tool that takes a corridor
+  id rather than guessing one. Flag-gated corridors that the UI hides are omitted.
+- `intel.leaderboard` — returns anchors ranked by composite reputation score
+  (fill rate, settlement speed, slippage). Pass a corridor ID to restrict the
+  list to anchors that serve that corridor. Unmeasured anchors (n = 0) are
+  included but labelled "not yet measured" so an agent can distinguish between
+  an anchor that is performing poorly and one with no data yet.
+- `intel.anchor.health` — returns the current status, consecutive failure count,
+  degraded flag, last check timestamp, last error message, and staleness flag for
+  a given anchor domain and optional asset.
+- `intel.anchor.reputation` — returns 7/30/90-day rolling percentile scorecards
+  for an anchor. Each scorecard shows state (ok or insufficient_data), sample
+  size, fill rate, settlement latency percentiles (p50/p95), and slippage
+  percentiles (p50/p95).
+- `intel.probe.coverage` — whether probe history is trustworthy yet:
+  fleetThresholdMet, daysUntilFleetThreshold, and per-anchor continuous days.
+  Same payload as GET /api/reputation/probe-coverage.
 
 The off-ramp tools carry no built-in payout addresses. A corridor routes only to
 a registered anchor (`constants/anchors.ts`) with an operator-verified receiving
@@ -39,6 +58,15 @@ account in the `ANCHOR_PAYMENT_ACCOUNTS` environment variable (JSON, anchor id
 to Stellar account); anything else returns `NO_ROUTE` and no transaction is
 built. See
 [`docs/MCP.md`](https://github.com/ezedike-evan/stellar-intel/blob/main/docs/MCP.md#routing-and-payment-accounts).
+
+### Prompts
+
+- `intel.offramp.choose-anchor` — compares the anchors available on a corridor so
+  the agent can pick the best one before quoting. Arguments: `from`, `to`.
+- `intel.offramp.quote-and-prepare` — walks through quoting a corridor,
+  preparing the unsigned off-ramp intent and transaction, and executing once the
+  calling agent has signed. Arguments: `from`, `to`, `amount`, `sender`,
+  `recipient`.
 
 ### Resources
 
@@ -80,7 +108,6 @@ state, same per-instance fallback when no database is configured.
   structured payload under the `stellarintel/rateLimit` `_meta` key carrying
   `code`, `tool`, `retryAfter`, `limit`, `resetAt` and `shared` — so a client
   can tell "you were throttled" from "the anchor is down" without parsing prose.
-  > > > > > > > pr1186
 
 ### Build
 

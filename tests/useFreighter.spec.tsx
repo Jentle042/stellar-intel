@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, renderHook, waitFor } from '@testing-library/react';
+import { render, renderHook, waitFor, act } from '@testing-library/react';
 import { useFreighter } from '@/hooks/useFreighter';
 import type { FreighterState } from '@/types';
 
@@ -193,6 +193,28 @@ describe('useFreighter — connect', () => {
       expect(result.current.error).toBeNull();
     });
   });
+
+  it('connect() calls requestAccess and updates state', async () => {
+    mockFreighterInstalled(false);
+    const testKey = 'GBRPYHIL2CI3WHZDTOOQFC6EB4KJJGUJEANS3D57CCOD5JIHVYXKOM77';
+    mockFreighterApi.requestAccess.mockResolvedValue({ address: testKey });
+    mockFreighterApi.getAddress.mockResolvedValue({ address: testKey, error: null });
+    mockFreighterApi.getNetwork.mockResolvedValue({ network: 'PUBLIC', error: null });
+
+    const { result } = renderHook(() => useFreighter(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isInstalled).toBe(true);
+    });
+
+    await act(async () => {
+      await result.current.connect();
+    });
+
+    expect(mockFreighterApi.requestAccess).toHaveBeenCalled();
+    expect(result.current.publicKey).toBe(testKey);
+    expect(result.current.isConnected).toBe(true);
+  });
 });
 
 // ─── Lifecycle 3: Disconnect ──────────────────────────────────────────────────
@@ -279,6 +301,17 @@ describe('useFreighter — network-change', () => {
     });
   });
 
+  it('sets error when network is not PUBLIC', async () => {
+    mockFreighterInstalled(true, 'TESTNET');
+
+    const { result } = renderHook(() => useFreighter(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isConnected).toBe(true);
+      expect(result.current.error).toBe('Please switch Freighter to Mainnet');
+    });
+  });
+
   it('maintains publicKey across network changes', async () => {
     const testKey = 'GBRPYHIL2CI3WHZDTOOQFC6EB4KJJGUJEANS3D57CCOD5JIHVYXKOM77';
 
@@ -341,14 +374,49 @@ describe('useFreighter — error handling', () => {
   });
 
   it('does not update state after unmount', async () => {
-    mockFreighterInstalled(true, 'PUBLIC');
+    let resolveIsConnected!: (value: { isConnected: boolean; error: null }) => void;
+    const isConnectedPromise = new Promise<{ isConnected: boolean; error: null }>((resolve) => {
+      resolveIsConnected = resolve;
+    });
 
-    const { result, unmount } = renderHook(() => useFreighter(), { wrapper });
+    mockFreighterApi.isConnected.mockReturnValue(isConnectedPromise);
+    mockFreighterApi.getAddress.mockResolvedValue({
+      publicKey: 'GBRPYHIL2CI3WHZDTOOQFC6EB4KJJGUJEANS3D57CCOD5JIHVYXKOM77',
+      error: null,
+    });
+    mockFreighterApi.getNetwork.mockResolvedValue({
+      network: 'PUBLIC',
+      error: null,
+    });
 
-    unmount();
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    // Should not throw errors about state updates on unmounted component
-    expect(result.current).toBeDefined();
+    try {
+      const { unmount } = renderHook(() => useFreighter(), { wrapper });
+
+      unmount();
+
+      // Resolve the deferred Freighter call only after unmount
+      await act(async () => {
+        resolveIsConnected({ isConnected: true, error: null });
+        await isConnectedPromise;
+      });
+
+      const unmountedWarningCalls = consoleErrorSpy.mock.calls.filter((args) =>
+        args.some(
+          (arg) =>
+            typeof arg === 'string' &&
+            (arg.includes('unmounted component') ||
+              arg.includes('not wrapped in act') ||
+              arg.includes("Can't perform a React state update on an unmounted component"))
+        )
+      );
+
+      expect(unmountedWarningCalls).toHaveLength(0);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 
   it('maintains initial state until API resolves', () => {

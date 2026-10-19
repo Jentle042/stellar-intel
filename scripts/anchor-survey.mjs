@@ -12,9 +12,8 @@
 //   ANCHOR_QUOTE_SERVER      -> SEP-38 (firm-quote RFQ)
 //   DIRECT_PAYMENT_SERVER    -> SEP-31 (cross-border payments)
 //
-// This is the script behind the "Anchor Fleet Status" section of maintainer.md.
-// Re-run it to refresh the 41/11/30/51 snapshot and surface anchors that have
-// since come online.
+// This script produces the anchor fleet survey snapshot.
+// Re-run it to refresh the snapshot and surface anchors that have since come online.
 //
 // Usage:
 //   node scripts/anchor-survey.mjs            # human summary
@@ -26,7 +25,7 @@
 //   node scripts/anchor-survey.mjs --concurrency 8   # parallel lookups (default 12, clamped 1-32)
 //   ANCHOR_SURVEY_CONCURRENCY=8 node scripts/anchor-survey.mjs   # same, via env (flag wins)
 //
-// Notes / caveats (see also docs + maintainer.md):
+// Notes / caveats (see also the anchor documentation):
 //   - The directory is NOT comprehensive (Stellar is permissionless). It also
 //     lists anchors by their issuer/home domain, which is often distinct from the
 //     service subdomain that actually hosts SEP endpoints (e.g. MoneyGram is listed
@@ -44,7 +43,12 @@ import { fetchTopAssetDomains } from './lib/asset-seeds.mjs';
 import { fetchSdfAnchorDirectoryDomains } from './lib/sdf-directory.mjs';
 import { HOSTNAME_RE, parseAnchors, parseCurrencies } from './validate-anchors.mjs';
 import { isImpersonation } from './lib/impersonation.mjs';
-import { extractAnchorsArray, parseAnchors, ANCHORS_PATH } from './check-registry.mjs';
+import {
+  extractAnchorsArray,
+  parseAnchors as parseRegistryAnchors,
+  ANCHORS_PATH,
+} from './check-registry.mjs';
+import { readListedAnchors } from './lib/listed-seeds.mjs';
 
 // Kept as the JSON `source` field for older readers that expect one source URL.
 const DIRECTORY_URL = 'https://api.stellar.expert/explorer/public/directory?limit=200';
@@ -133,12 +137,25 @@ const TIER_ORDER = { routable: 0, 'health-only': 1, listed: 2 };
  * @param {Array<Record<string, unknown>>} results
  * @param {Array<{ id: string; homeDomain?: string; serviceDomain?: string }>} registryAnchors
  * @param {string | null} generatedAt
+ * @param {Array<{ id: string; kind: string; domains?: string[] }>} [listedAnchors]
  */
-export function buildCensus(results, registryAnchors, generatedAt) {
+export function buildCensus(results, registryAnchors, generatedAt, listedAnchors = []) {
   const registryByDomain = new Map();
   for (const anchor of registryAnchors ?? []) {
     for (const domain of [anchor.homeDomain, anchor.serviceDomain]) {
       if (domain) registryByDomain.set(domain.toLowerCase(), anchor.id);
+    }
+  }
+
+  const listedByDomain = new Map();
+  for (const entry of listedAnchors ?? []) {
+    for (const d of entry.domains ?? []) {
+      if (d) {
+        listedByDomain.set(String(d).toLowerCase(), {
+          id: entry.id,
+          kind: entry.kind,
+        });
+      }
     }
   }
 
@@ -155,6 +172,9 @@ export function buildCensus(results, registryAnchors, generatedAt) {
     else if (tier === 'health-only') counts.healthOnly += 1;
     else counts.listed += 1;
 
+    const domainLower = result.domain.toLowerCase();
+    const listed = listedByDomain.get(domainLower);
+
     rows.push({
       domain: result.domain,
       tier,
@@ -169,7 +189,9 @@ export function buildCensus(results, registryAnchors, generatedAt) {
       depositAssets: result.depositAssets ?? [],
       receiveAssets: result.receiveAssets ?? [],
       sources: result.sources ?? [],
-      registeredAnchorId: registryByDomain.get(result.domain.toLowerCase()) ?? null,
+      registeredAnchorId: registryByDomain.get(domainLower) ?? null,
+      listedAnchorId: listed?.id ?? null,
+      listedKind: listed?.kind ?? null,
       checkedAt: result.checkedAt ?? generatedAt,
     });
   }
@@ -771,8 +793,16 @@ async function main() {
   const generatedAt = new Date().toISOString();
 
   if (censusOutPath) {
-    const registryAnchors = parseAnchors(extractAnchorsArray(readFileSync(ANCHORS_PATH, 'utf-8')));
-    const census = buildCensus(results, registryAnchors, generatedAt);
+    const registryAnchors = parseRegistryAnchors(
+      extractAnchorsArray(readFileSync(ANCHORS_PATH, 'utf-8'))
+    );
+    let listedAnchors = [];
+    try {
+      listedAnchors = readListedAnchors();
+    } catch (e) {
+      console.warn(`[anchor-survey] warning: failed to read listed anchors: ${e.message}`);
+    }
+    const census = buildCensus(results, registryAnchors, generatedAt, listedAnchors);
     writeFileSync(censusOutPath, JSON.stringify(census, null, 2) + '\n');
   }
 

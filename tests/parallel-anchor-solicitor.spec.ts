@@ -5,8 +5,10 @@
  *  - Concurrent execution (all fetches start at once, not sequentially)
  *  - Partial results under timeout (fast anchors returned, slow excluded)
  *  - Rejected promises handled gracefully via Promise.allSettled
- *  - Deadline enforcement per anchor
- *  - Aggregation correctness
+ *  - Deadline enforcement per anchor, including the exact-deadline boundary
+ *    (an anchor answering at the same tick as its deadline is dropped)
+ *  - Aggregation correctness, including ties broken by anchor id
+ *  - Repeated calls with the same responses give the same outcome
  *
  * All timing uses vitest fake timers — no real I/O.
  * sep1.ts is mocked to avoid Stellar SDK TOML resolution.
@@ -31,7 +33,7 @@ import {
   computeRateComparison,
 } from '@/lib/stellar/sep24';
 import * as anchorsModule from '@/lib/stellar/anchors';
-import type { Anchor } from '@/types';
+import type { Anchor, AnchorRate } from '@/types';
 
 // ─── Anchor stubs ─────────────────────────────────────────────────────────────
 
@@ -134,6 +136,7 @@ describe('solicitAnchorQuotes — concurrency and deadline', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 
@@ -177,10 +180,75 @@ describe('solicitAnchorQuotes — concurrency and deadline', () => {
     await vi.runAllTimersAsync();
     const results = await resultPromise;
 
+    expect(results).toHaveLength(3);
     expect(results.every((r) => r.status === 'rejected')).toBe(true);
     results.forEach((r) => {
       expect((r as PromiseRejectedResult).reason).toBeInstanceOf(DeadlineExceededError);
     });
+    expect(
+      results.map((r) => ((r as PromiseRejectedResult).reason as DeadlineExceededError).anchorId)
+    ).toEqual(['fast-anchor', 'medium-anchor', 'slow-anchor']);
+  });
+
+  it('deadline boundary — an anchor answering at exactly SOLICITOR_DEADLINE_MS is dropped', async () => {
+    // The deadline timer is armed before the anchor's /fee request goes out, so
+    // at the same tick it fires first: the deadline is exclusive.
+    vi.stubGlobal(
+      'fetch',
+      buildFetchMock({
+        'fast.example.com': { delayMs: SOLICITOR_DEADLINE_MS - 1, fee: '2', exchangeRate: 1580 },
+        'medium.example.com': { delayMs: SOLICITOR_DEADLINE_MS, fee: '3', exchangeRate: 1575 },
+        'slow.example.com': { delayMs: SOLICITOR_DEADLINE_MS + 1, fee: '1', exchangeRate: 1590 },
+      })
+    );
+
+    const resultPromise = solicitAnchorQuotes('100', 'usdc-ngn');
+    await vi.runAllTimersAsync();
+    const results = await resultPromise;
+
+    expect(results.map((r) => r.status)).toEqual(['fulfilled', 'rejected', 'rejected']);
+    const [early, onDeadline, late] = results as [
+      PromiseFulfilledResult<AnchorRate>,
+      PromiseRejectedResult,
+      PromiseRejectedResult,
+    ];
+    expect(early.value.anchorId).toBe('fast-anchor');
+    for (const [rejection, anchorId] of [
+      [onDeadline, 'medium-anchor'],
+      [late, 'slow-anchor'],
+    ] as const) {
+      expect(rejection.reason).toBeInstanceOf(DeadlineExceededError);
+      expect((rejection.reason as DeadlineExceededError).anchorId).toBe(anchorId);
+      expect((rejection.reason as DeadlineExceededError).deadlineMs).toBe(SOLICITOR_DEADLINE_MS);
+    }
+  });
+
+  it('identical quotes at different delays — winner is picked by anchor id, not arrival order', async () => {
+    // fast-anchor, the lowest id, is in the middle of both the list order
+    // (slow, fast, medium) and the arrival order (medium, fast, slow), so
+    // neither "first wins" nor "last wins" picks it.
+    vi.spyOn(anchorsModule, 'getAnchorsByCorridorId').mockReturnValue([
+      MOCK_ANCHORS_3[2]!,
+      MOCK_ANCHORS_3[0]!,
+      MOCK_ANCHORS_3[1]!,
+    ]);
+    vi.stubGlobal(
+      'fetch',
+      buildFetchMock({
+        'fast.example.com': { delayMs: 300, fee: '2', exchangeRate: 1580 },
+        'medium.example.com': { delayMs: 100, fee: '2', exchangeRate: 1580 },
+        'slow.example.com': { delayMs: 600, fee: '2', exchangeRate: 1580 },
+      })
+    );
+
+    const resultPromise = solicitAnchorQuotes('100', 'usdc-ngn');
+    await vi.runAllTimersAsync();
+    const results = await resultPromise;
+
+    const comparison = computeRateComparison(results, 'usdc-ngn');
+
+    expect(comparison.rates).toHaveLength(3);
+    expect(comparison.bestRateId).toBe('fast-anchor');
   });
 
   it('rejected anchor promise is isolated — other anchors still succeed', async () => {
@@ -202,6 +270,8 @@ describe('solicitAnchorQuotes — concurrency and deadline', () => {
 
     expect(fulfilled).toHaveLength(2);
     expect(rejected).toHaveLength(1);
+    // The failure stays in medium-anchor's slot
+    expect(results.map((r) => r.status)).toEqual(['fulfilled', 'rejected', 'fulfilled']);
     // A real HTTP failure, not a deadline error
     expect((rejected[0] as PromiseRejectedResult).reason).not.toBeInstanceOf(DeadlineExceededError);
   });
@@ -225,7 +295,8 @@ describe('solicitAnchorQuotes — concurrency and deadline', () => {
   });
 
   it('executes all fetches concurrently — all start before any completes', async () => {
-    let feeCallCount = 0;
+    let inFlight = 0;
+    let maxInFlight = 0;
 
     vi.stubGlobal(
       'fetch',
@@ -243,16 +314,22 @@ describe('solicitAnchorQuotes — concurrency and deadline', () => {
           } as unknown as Response;
         }
 
-        // Count /fee endpoint calls
         if (url.includes('/fee')) {
-          feeCallCount++;
+          inFlight++;
+          maxInFlight = Math.max(maxInFlight, inFlight);
         }
 
-        await new Promise<void>((resolve) => setTimeout(resolve, 100));
-        return {
-          ok: true,
-          json: async () => ({ fee: 2, price: 1580 }),
-        } as unknown as Response;
+        try {
+          await new Promise<void>((resolve) => setTimeout(resolve, 100));
+          return {
+            ok: true,
+            json: async () => ({ fee: 2, price: 1580 }),
+          } as unknown as Response;
+        } finally {
+          if (url.includes('/fee')) {
+            inFlight--;
+          }
+        }
       })
     );
 
@@ -261,8 +338,7 @@ describe('solicitAnchorQuotes — concurrency and deadline', () => {
     const results = await resultPromise;
 
     expect(results).toHaveLength(3);
-    // All 3 anchor fee calls must have been made (concurrent, not sequential)
-    expect(feeCallCount).toBe(3);
+    expect(maxInFlight).toBe(3);
   });
 
   it('aggregation correctness — best rate selected from partial results', async () => {
@@ -342,6 +418,37 @@ describe('solicitAnchorQuotes — concurrency and deadline', () => {
 
     expect(feeUrl).toContain('asset_code=CORRIDOR_ASSET');
     expect(feeUrl).toContain('asset_issuer=CORRIDOR_ISSUER');
+  });
+
+  it('repeated calls with the same anchor responses give the same outcome', async () => {
+    vi.stubGlobal(
+      'fetch',
+      buildFetchMock({
+        'fast.example.com': { delayMs: 50, fee: '2', exchangeRate: 1580 },
+        'medium.example.com': { delayMs: 500, fee: '3', exchangeRate: 1575 },
+        'slow.example.com': { delayMs: 2_500, fee: '1', exchangeRate: 1590 },
+      })
+    );
+
+    const run = async () => {
+      const resultPromise = solicitAnchorQuotes('100', 'usdc-ngn');
+      await vi.runAllTimersAsync();
+      const results = await resultPromise;
+      return {
+        statuses: results.map((r) => r.status),
+        bestRateId: computeRateComparison(results, 'usdc-ngn').bestRateId,
+      };
+    };
+
+    const first = await run();
+    const second = await run();
+
+    // fast-anchor: (100-2)*1580 = 154,840 beats medium-anchor's 152,775
+    expect(first).toEqual({
+      statuses: ['fulfilled', 'fulfilled', 'rejected'],
+      bestRateId: 'fast-anchor',
+    });
+    expect(second).toEqual(first);
   });
 
   it('SOLICITOR_DEADLINE_MS is exported and equals 2000', () => {

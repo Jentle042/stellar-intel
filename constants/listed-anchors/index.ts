@@ -9,24 +9,52 @@
 import type { ListedAnchor } from '@/types';
 import { parseListedAnchors } from '@/lib/stellar/listed-anchor-schema';
 
+import afreum from './afreum.json';
+import apsTokens from './aps-tokens.json';
+import audd from './audd.json';
+import blackRidgeTrust from './black-ridge-trust.json';
+import fxdao from './fxdao.json';
+import gmoTrust from './gmo-trust.json';
 import gratz from './gratz.json';
 import ixinium from './ixinium.json';
+import luxPayband from './lux-payband.json';
 import mauAccounts from './mau-accounts.json';
 import meshMzar from './mesh-mzar.json';
 import mirrasets from './mirrasets.json';
 import mobius from './mobius.json';
 import moneygramMgusd from './moneygram-mgusd.json';
 import nafuloo from './nafuloo.json';
+import naobtc from './naobtc.json';
+import phoenix from './phoenix.json';
+import reyts from './reyts.json';
+import stronghold from './stronghold.json';
+import ultraCapital from './ultra-capital.json';
+import valtorum from './valtorum.json';
+import vnx from './vnx.json';
 
 const RAW: unknown[] = [
+  afreum,
+  apsTokens,
+  audd,
+  blackRidgeTrust,
+  fxdao,
+  gmoTrust,
   gratz,
   ixinium,
+  luxPayband,
   mauAccounts,
   meshMzar,
   mirrasets,
   mobius,
   moneygramMgusd,
   nafuloo,
+  naobtc,
+  phoenix,
+  reyts,
+  stronghold,
+  ultraCapital,
+  valtorum,
+  vnx,
 ];
 
 export const LISTED_ANCHORS: readonly ListedAnchor[] = parseListedAnchors(RAW);
