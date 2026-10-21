@@ -152,21 +152,21 @@ are in `lib/reputation/migrations/`.
 
 ## API
 
-| Method & path                                        | Purpose                                                                                                                        |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `GET /api/reputation/actuarial`                      | settlement-SLA actuarial accumulation (#813).                                                                                  |
-| `GET /api/reputation/leaderboard?corridor=…`         | Ranked anchors (optionally per-corridor).                                                                                      |
-| `GET /api/reputation/probe-coverage`                 | 90-day probe-accumulation progress JSON.                                                                                       |
-| `GET /api/reputation/[anchor]`                       | Current score + bands for one anchor.                                                                                          |
-| `GET /api/reputation/[anchor]/history?window=…`      | Historical score series.                                                                                                       |
-| `GET /api/reputation/[anchor]/quote-gap?window=…`    | Quoted-vs-landed gap statistics over the requested window (Q38003).                                                            |
-| `GET /api/reputation/[anchor]/price-history?window=…`| Realized-rate price history derived from settled outcomes (Q38001).                                                            |
-| `POST /api/reputation/append`                        | Append a signed outcome tuple.                                                                                                 |
-| `POST /api/reputation/dispute`                       | File a dispute against an outcome.                                                                                             |
-| `GET\|POST /api/reputation/reconcile`                | Reconcile aggregates (maintenance).                                                                                            |
-| `GET\|POST /api/reputation/reconcile-volume-savings` | Reconciles DB volume and savings against on-chain stats.                                                                       |
-| `GET\|POST /api/reputation/refresh`                  | Refresh materialized aggregates.                                                                                               |
-| `GET /api/reputation/sdf-export`                     | Candidate export for SDF's Anchor Directory — see [`docs/ANCHOR_DIRECTORY_CONTRIBUTION.md`](ANCHOR_DIRECTORY_CONTRIBUTION.md). |
+| Method & path                                         | Purpose                                                                                                                        |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /api/reputation/actuarial`                       | settlement-SLA actuarial accumulation (#813).                                                                                  |
+| `GET /api/reputation/leaderboard?corridor=…`          | Ranked anchors (optionally per-corridor).                                                                                      |
+| `GET /api/reputation/probe-coverage`                  | 90-day probe-accumulation progress JSON.                                                                                       |
+| `GET /api/reputation/[anchor]`                        | Current score + bands for one anchor.                                                                                          |
+| `GET /api/reputation/[anchor]/history?window=…`       | Historical score series.                                                                                                       |
+| `GET /api/reputation/[anchor]/quote-gap?window=…`     | Quoted-vs-landed gap statistics over the requested window (Q38003).                                                            |
+| `GET /api/reputation/[anchor]/price-history?window=…` | Realized-rate price history derived from settled outcomes (Q38001).                                                            |
+| `POST /api/reputation/append`                         | Append a signed outcome tuple.                                                                                                 |
+| `POST /api/reputation/dispute`                        | File a dispute against an outcome.                                                                                             |
+| `GET\|POST /api/reputation/reconcile`                 | Reconcile aggregates (maintenance).                                                                                            |
+| `GET\|POST /api/reputation/reconcile-volume-savings`  | Reconciles DB volume and savings against on-chain stats.                                                                       |
+| `GET\|POST /api/reputation/refresh`                   | Refresh materialized aggregates.                                                                                               |
+| `GET /api/reputation/sdf-export`                      | Candidate export for SDF's Anchor Directory — see [`docs/ANCHOR_DIRECTORY_CONTRIBUTION.md`](ANCHOR_DIRECTORY_CONTRIBUTION.md). |
 
 Outcomes are signed and replayable, so a dispute resolves on evidence, not
 opinion. Admin-only review is gated by `ADMIN_SECRET_KEY` via
