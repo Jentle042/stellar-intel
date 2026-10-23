@@ -35,6 +35,15 @@ Tracking: batch-2 issues `#B001–#B025` (see [CONTRIBUTING.md](../CONTRIBUTING.
 
 ## Per-anchor SEP support matrix
 
+## SEP-38 readiness
+
+SEP-38 readiness describes whether an anchor can serve a **firm** quote (a quote with a binding price and expiry) for a given corridor, as opposed to an indicative rate derived from fees and FX. Readiness is computed from the anchor's `stellar.toml` (`ANCHOR_QUOTE_SERVER` presence), the `/info` assets and corridors the quote server advertises, and the outcome of live probes recorded in the capability capture.
+
+- Per-anchor readiness is shown on the SEP-38 status page at [`/anchors/sep38`](/anchors/sep38).
+- The machine-readable readiness data is served at [`/api/v1/sep38/readiness`](/api/v1/sep38/readiness).
+
+Anchors that are not SEP-38 ready fall back to the indicative tiers described above (SEP-24, then SEP-6). Indicative and firm rates are never mixed in the same comparison without the badge making the distinction visible.
+
 Registered anchors ([`constants/anchors.ts`](../constants/anchors.ts)). Capability is read from each anchor's `stellar.toml`; refresh with `node scripts/anchor-survey.mjs`.
 
 | Anchor                              | SEP-1 | SEP-6 | SEP-10 | SEP-12 | SEP-24 | SEP-31 | SEP-38 | Corridors               |

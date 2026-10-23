@@ -49,6 +49,29 @@ export default function MethodologyPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className={PROSE_CLASSES} dangerouslySetInnerHTML={{ __html: html }} />
+      <section aria-labelledby="quotes-estimates-heading" className={PROSE_CLASSES}>
+        <h2 id="quotes-estimates-heading">Quotes, estimates and what actually lands</h2>
+        <p>
+          Firm quotes follow SEP-38 and are binding for a stated window. Indicative quotes are
+          informational only and are not a commitment to deliver the stated amount.
+        </p>
+        <p>
+          The reference price is computed by the recipe described in Q38017. The realized rate is
+          measured as <code>amount_out / amount_in</code> (Q38001), so it reflects what the
+          recipient actually received rather than what was quoted.
+        </p>
+        <p>
+          Quote-gap statistics compare quoted and landed amounts over a fixed trailing window
+          (Q38003). The min-receive guard rejects transactions whose landed amount falls below the
+          quoted minimum, allowing a tolerance defined by <code>MIN_RECEIVE_TOLERANCE</code>{' '}
+          (Q38007).
+        </p>
+        <p>
+          Anchors that return firm SEP-38 quotes receive a ranking bonus, surfaced by a flag
+          (Q38011). Readiness for SEP-38 is summarized at <a href="/anchors/sep38">/anchors/sep38</a>
+          and <a href="/api/v1/sep38/readiness">/api/v1/sep38/readiness</a>.
+        </p>
+      </section>
     </div>
   );
 }
