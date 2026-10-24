@@ -34,7 +34,7 @@ export const metadata: Metadata = {
 };
 
 // Renders docs/ANCHOR_REPUTATION.md directly rather than duplicating its
-// content in this component, so the dod stays the single source of truth —
+// content in this component, so the doc stays the single source of truth —
 // editing it is the only way to update this page.
 function renderMethodologyDoc(): string {
   const source = readFileSync(join(process.cwd(), 'docs/ANCHOR_REPUTATION.md'), 'utf-8');
@@ -57,22 +57,22 @@ export default function MethodologyPage() {
           Every estimate is labelled with which of the two it is.
         </p>
         <p>
-          The reference price answers &lpdquo;what is one unit of this asset worth in the local
+          The reference price answers &ldquo;what is one unit of this asset worth in the local
           currency&rdquo;. USDC is treated as exactly 1 USD and converted with the open.er-api
-          USD&rrarr;fiat rate. A fiat-pegged asset (for example NGNC&rrarr;NGN) uses the open.er-api
+          USD&rarr;fiat rate. A fiat-pegged asset (for example NGNC&rarr;NGN) uses the open.er-api
           rate between its peg and the local currency. Any other asset uses the midpoint of the best
-          bid and ask on the SDX order book against USDC, then the same USD&rrarr;fiat rate. If a
+          bid and ask on the SDEX order book against USDC, then the same USD&rarr;fiat rate. If a
           side of the book is empty or the spread is wider than 5%, no price is shown rather than a
           bad one.
         </p>
         <p>
-          What actually landed is measured from the anchor&apos;s own transaction record as <br />
-          <code>amount_out / amount_in</code> (fees included). A second figure, {' '}
+          What actually landed is measured from the anchor&apos;s own transaction record as{' '}
+          <code>amount_out / amount_in</code> (fees included). A second figure,{' '}
           <code>amount_out / (amount_in &minus; amount_fee)</code>, strips the fee out when the
           anchor reports it.
         </p>
         <p>
-          Before the wallet is asked to sign a withdrawal, an anchor&apos;s own <br />
+          Before the wallet is asked to sign a withdrawal, the anchor&apos;s own{' '}
           <code>amount_out</code> estimate is compared with a minimum-receive floor. The floor is
           the selected rate&apos;s expected net amount less <code>MIN_RECEIVE_TOLERANCE</code>,
           which is 2%. If the anchor now estimates less than the floor, the payment is blocked and

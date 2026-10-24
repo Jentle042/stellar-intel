@@ -1,4 +1,3 @@
-
 # SEP Compliance Matrix
 
 **Last reviewed:** 2026-10-24
@@ -71,9 +70,10 @@ flow is indicative pricing plus SEP-24 execution and is labelled as such in the 
 
 ### Min-receive guard
 
-Before submitting a SEP-6 or SEP-24 withdraw, Stellar Intel compares the anchor's quoted receive
-amount against the corridor's minimum. If the quote falls below the minimum, the flow is blocked
-with an explanatory error rather than submitting a transaction the anchor would reject.
+Before the wallet is asked to sign a SEP-24 withdrawal, Stellar Intel compares the anchor's own
+`amount_out` estimate with the minimum-receive floor: the selected rate's expected net amount less
+`MIN_RECEIVE_TOLERANCE` (2%). If the anchor now estimates less than the floor, the payment is
+blocked and the user sees both figures. If the anchor gives no estimate, the flow continues.
 
 ### SEP-38 readiness
 
@@ -98,10 +98,6 @@ independently, so that is flagged in `constants/anchors.ts` rather than resolved
 - **nTokens** (`ntokens.com`) services the BRL corridor via `ntokens-box.bpventures.us`. Its TOML advertises `TRANSFER_SERVER_SEP0024`, a `DIRECT_PAYMENT_SERVER` (SEP-31), and `TRANSFER_SERVER` (SEP-6). SEP-38 and SEP-12 are not advertised.
 - **MoneyGram** serves the widest corridor set (five currencies) exclusively through SEP-24. It does not publish a SEP-6 transfer server or an anchor quote server.
 - SEP-12 columns in the matrix above reflect the anchor's advertised capability in `stellar.toml`. The in-app KYC form wires to each anchor's `/customer` endpoint at execution time.
-
-## Readiness
-
-SEP-38 readiness is derived from `ANCHOR_QUOTE_SERVER` presence plus the quote server's `/info` pair listing; the per-anchor result is the SEP-38 column above. There is no separate readiness page or endpoint yet — the matrix and the one-line availability summary are the source of truth.
 
 ## Fleet survey
 
