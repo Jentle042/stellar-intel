@@ -35,13 +35,6 @@ Tracking: batch-2 issues `#B001–#B025` (see [CONTRIBUTING.md](../CONTRIBUTING.
 
 ## Per-anchor SEP support matrix
 
-SEP-38 readiness describes whether an anchor can serve a **firm** quote (a quote with a binding price and expiry) for a given corridor, as opposed to an indicative rate derived from fees and FX. Readiness is computed from the anchor's `stellar.toml` (`ANCHOR_QUOTE_SERVER` presence), the `/info` assets and corridors the quote server advertises, and the outcome of live probes recorded in the capability capture.
-
-- Per-anchor readiness is shown on the SEP-38 status page at [`/anchors/sep38`](/anchors/sep38).
-- The machine-readable readiness data is served at [`/api/v1/sep38/readiness`](/api/v1/sep38/readiness).
-
-Anchors that are not SEP-38 ready fall back to the indicative tiers described above (SEP-24, then SEP-6). Indicative and firm rates are never mixed in the same comparison without the badge making the distinction visible.
-
 Registered anchors ([`constants/anchors.ts`](../constants/anchors.ts)). Capability is read from each anchor's `stellar.toml`; refresh with `node scripts/anchor-survey.mjs`.
 
 | Anchor                              | SEP-1 | SEP-6 | SEP-10 | SEP-12 | SEP-24 | SEP-31 | SEP-38 | Corridors               |
@@ -74,6 +67,14 @@ USDC and BRL only. No anchor serves a firm quote for **NGN**, so the USDC→NGN 
 pricing plus SEP-24 execution, and is labelled as such in the UI. Zeam's SEP-38 also offers no
 **ZAR**, despite the registry listing it on the `usdc-zar` corridor; SEP-24 may serve ZAR
 independently, so that is flagged in `constants/anchors.ts` rather than resolved by guesswork.
+
+### SEP-38 readiness
+
+An anchor is SEP-38 ready when its `stellar.toml` publishes `ANCHOR_QUOTE_SERVER` and the quote
+server's `/info` lists the asset and fiat pair of the corridor. Readiness decides whether a
+corridor can show a **firm** quote or only an **indicative** estimate (fees plus a reference
+price). The per-anchor result is the SEP-38 column in the matrix above and the one-line summary
+above; there is no separate readiness page or endpoint yet.
 
 ## Notes
 

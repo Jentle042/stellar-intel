@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { marked } from 'marked';
 import { PROSE_CLASSES } from '@/lib/prose';
 
@@ -52,38 +51,33 @@ export default function MethodologyPage() {
       <section aria-labelledby="quotes-estimates-heading" className={PROSE_CLASSES}>
         <h2 id="quotes-estimates-heading">Quotes, estimates and what actually lands</h2>
         <p>
-          Firm quotes follow SEP-38 and are binding for a stated window. Indicative quotes are
-          informational only and are not a commitment to deliver the stated amount.
+          A <strong>firm</strong> quote comes from an anchor&apos;s SEP-38 quote server and is
+          binding until it expires. An <strong>indicative</strong> estimate is computed by Stellar
+          Intel from the anchor&apos;s published fees and a reference price, and is never a promise.
+          Every estimate is labelled with which of the two it is.
         </p>
         <p>
-          The reference price is computed by the recipe described in Q38017. The realized rate is
-          measured as <code>amount_out / amount_in</code> (Q38001), so it reflects what the
-          recipient actually received rather than what was quoted.
+          The reference price answers &ldquo;what is one unit of this asset worth in the local
+          currency&rdquo;. USDC is treated as exactly 1 USD and converted with the open.er-api
+          USD&rarr;fiat rate. A fiat-pegged asset (for example NGNC&rarr;NGN) uses the open.er-api
+          rate between its peg and the local currency. Any other asset uses the midpoint of the best
+          bid and ask on the SDEX order book against USDC, then the same USD&rarr;fiat rate. If a
+          side of the book is empty or the spread is wider than 5%, no price is shown rather than a
+          bad one.
         </p>
         <p>
-          Quote-gap statistics compare quoted and landed amounts over a fixed trailing window
-          (Q38003). The min-receive guard rejects transactions whose landed amount falls below the
-          quoted minimum, allowing a tolerance defined by <code>MIN_RECEIVE_TOLERANCE</code>{' '}
-          (Q38007).
+          What actually landed is measured from the anchor&apos;s own transaction record as{' '}
+          <code>amount_out / amount_in</code> (fees included). A second figure,{' '}
+          <code>amount_out / (amount_in &minus; amount_fee)</code>, strips the fee out when the
+          anchor reports it.
         </p>
         <p>
-          Anchors that return firm SEP-38 quotes receive a ranking bonus, surfaced by a flag
-          (Q38011). Readiness for SEP-38 is summarized at{' '}
-          <Link href="/anchors/sep38">/anchors/sep38</Link> and{' '}
-          <a href="/api/v1/sep38/readiness">/api/v1/sep38/readiness</a>.
-        </p>
-        <p>
-          SEP-38 readiness describes whether an anchor can serve a <strong>firm</strong> quote (a
-          quote with a binding price and expiry) for a given corridor, as opposed to an indicative
-          rate derived from fees and FX. Readiness is computed from the anchor&apos;s{' '}
-          <code>stellar.toml</code> (<code>ANCHOR_QUOTE_SERVER</code> presence), the{' '}
-          <code>/info</code> assets and corridors the quote server advertises, and the outcome of
-          live probes recorded in the capability capture.
-        </p>
-        <p>
-          Anchors that are not SEP-38 ready fall back to the indicative tiers described above
-          (SEP-24, then SEP-6). Indicative and firm rates are never mixed in the same comparison
-          without the badge making the distinction visible.
+          Before the wallet is asked to sign a withdrawal, the anchor&apos;s own{' '}
+          <code>amount_out</code> estimate is compared with a minimum-receive floor. The floor is
+          the selected rate&apos;s expected net amount less <code>MIN_RECEIVE_TOLERANCE</code>,
+          which is 2%. If the anchor now estimates less than the floor, the payment is blocked and
+          the user is told both figures. If the anchor gives no estimate, the flow continues and the
+          final amount is set by the anchor.
         </p>
       </section>
     </div>
