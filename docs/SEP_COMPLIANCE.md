@@ -1,6 +1,7 @@
+
 # SEP Compliance Matrix
 
-**Last reviewed:** 2026-09-26
+**Last reviewed:** 2026-10-24
 
 Stellar Intel integrates with Stellar anchors that implement various Stellar Ecosystem Proposals (SEPs). SEP-6 enables programmatic deposit/withdraw — the anchor exposes a machine-readable API rather than hosting an iframe — allowing Stellar Intel to collect KYC fields natively and surface indicative rates for SEP-6-only anchors. Anchors that advertise SEP-6 but not SEP-24 receive an **Indicative** badge in the comparison UI, since their rates are derived from the SEP-6 `/info` fee schedule rather than a live quote.
 
@@ -60,6 +61,20 @@ Registered anchors ([`constants/anchors.ts`](../constants/anchors.ts)). Capabili
 > capability read that stops at the TOML kept scoring it as supported. EUR has no anchor now and
 > the `usdc-eur` corridor is hidden from selectors until one serves it.
 
+### SEP-38 quote gap
+
+The SEP-38 column records whether an anchor advertises a quote server, not whether it can serve a
+firm quote for a given corridor. A corridor is only firm-quoted when the quote server's `/info`
+lists both the asset and the fiat pair; otherwise the corridor falls back to indicative pricing
+(Tier 2 or Tier 3 above). Today no registered anchor serves a firm quote for NGN, so the USDC→NGN
+flow is indicative pricing plus SEP-24 execution and is labelled as such in the UI.
+
+### Min-receive guard
+
+Before submitting a SEP-6 or SEP-24 withdraw, Stellar Intel compares the anchor's quoted receive
+amount against the corridor's minimum. If the quote falls below the minimum, the flow is blocked
+with an explanatory error rather than submitting a transaction the anchor would reject.
+
 ### SEP-38 readiness
 
 An anchor is SEP-38 ready when its `stellar.toml` publishes `ANCHOR_QUOTE_SERVER` and the quote
@@ -83,6 +98,10 @@ independently, so that is flagged in `constants/anchors.ts` rather than resolved
 - **nTokens** (`ntokens.com`) services the BRL corridor via `ntokens-box.bpventures.us`. Its TOML advertises `TRANSFER_SERVER_SEP0024`, a `DIRECT_PAYMENT_SERVER` (SEP-31), and `TRANSFER_SERVER` (SEP-6). SEP-38 and SEP-12 are not advertised.
 - **MoneyGram** serves the widest corridor set (five currencies) exclusively through SEP-24. It does not publish a SEP-6 transfer server or an anchor quote server.
 - SEP-12 columns in the matrix above reflect the anchor's advertised capability in `stellar.toml`. The in-app KYC form wires to each anchor's `/customer` endpoint at execution time.
+
+## Readiness
+
+SEP-38 readiness is derived from `ANCHOR_QUOTE_SERVER` presence plus the quote server's `/info` pair listing; the per-anchor result is the SEP-38 column above. There is no separate readiness page or endpoint yet — the matrix and the one-line availability summary are the source of truth.
 
 ## Fleet survey
 

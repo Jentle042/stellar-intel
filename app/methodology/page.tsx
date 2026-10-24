@@ -34,7 +34,7 @@ export const metadata: Metadata = {
 };
 
 // Renders docs/ANCHOR_REPUTATION.md directly rather than duplicating its
-// content in this component, so the doc stays the single source of truth —
+// content in this component, so the dod stays the single source of truth —
 // editing it is the only way to update this page.
 function renderMethodologyDoc(): string {
   const source = readFileSync(join(process.cwd(), 'docs/ANCHOR_REPUTATION.md'), 'utf-8');
@@ -51,13 +51,13 @@ export default function MethodologyPage() {
       <section aria-labelledby="quotes-estimates-heading" className={PROSE_CLASSES}>
         <h2 id="quotes-estimates-heading">Quotes, estimates and what actually lands</h2>
         <p>
-          A <strong>firm</strong> quote comes from an anchor&pos;s SEP-38 quote server and is
+          A <strong>firm</strong> quote comes from an anchor&apos;s SEP-38 quote server and is
           binding until it expires. An <strong>indicative</strong> estimate is computed by Stellar
-          Intel from the anchor&pos;s published fees and a reference price, and is never a promise.
+          Intel from the anchor&apos;s published fees and a reference price, and is never a promise.
           Every estimate is labelled with which of the two it is.
         </p>
         <p>
-          The reference price answers &ldquo;what is one unit of this asset worth in the local
+          The reference price answers &lpdquo;what is one unit of this asset worth in the local
           currency&rdquo;. USDC is treated as exactly 1 USD and converted with the open.er-api
           USD&rrarr;fiat rate. A fiat-pegged asset (for example NGNC&rrarr;NGN) uses the open.er-api
           rate between its peg and the local currency. Any other asset uses the midpoint of the best
@@ -66,15 +66,15 @@ export default function MethodologyPage() {
           bad one.
         </p>
         <p>
-          What actually landed is measured from the anchor&pos;s own transaction record as <br />
-          <code>amount_out / amount_in</code> (fees included). A second figure,{' '}
+          What actually landed is measured from the anchor&apos;s own transaction record as <br />
+          <code>amount_out / amount_in</code> (fees included). A second figure, {' '}
           <code>amount_out / (amount_in &minus; amount_fee)</code>, strips the fee out when the
           anchor reports it.
         </p>
         <p>
-          Before the wallet is asked to sign a withdrawal, an anchor&pos;s own <br />
+          Before the wallet is asked to sign a withdrawal, an anchor&apos;s own <br />
           <code>amount_out</code> estimate is compared with a minimum-receive floor. The floor is
-          the selected rate&pos;s expected net amount less <code>MIN_RECEIVE_TOLERANCE</code>,
+          the selected rate&apos;s expected net amount less <code>MIN_RECEIVE_TOLERANCE</code>,
           which is 2%. If the anchor now estimates less than the floor, the payment is blocked and
           the user is told both figures. If the anchor gives no estimate, the flow continues and the
           final amount is set by the anchor.
