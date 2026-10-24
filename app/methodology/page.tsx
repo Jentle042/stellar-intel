@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { marked } from 'marked';
 import { PROSE_CLASSES } from '@/lib/prose';
 
@@ -42,7 +43,6 @@ function renderMethodologyDoc(): string {
 }
 
 // Shared with /terms so both markdown-rendered pages look identical.
-
 export default function MethodologyPage() {
   const html = renderMethodologyDoc();
 
@@ -68,8 +68,22 @@ export default function MethodologyPage() {
         </p>
         <p>
           Anchors that return firm SEP-38 quotes receive a ranking bonus, surfaced by a flag
-          (Q38011). Readiness for SEP-38 is summarized at <a href="/anchors/sep38">/anchors/sep38</a>
-          and <a href="/api/v1/sep38/readiness">/api/v1/sep38/readiness</a>.
+          (Q38011). Readiness for SEP-38 is summarized at{' '}
+          <Link href="/anchors/sep38">/anchors/sep38</Link> and{' '}
+          <a href="/api/v1/sep38/readiness">/api/v1/sep38/readiness</a>.
+        </p>
+        <p>
+          SEP-38 readiness describes whether an anchor can serve a <strong>firm</strong> quote (a
+          quote with a binding price and expiry) for a given corridor, as opposed to an indicative
+          rate derived from fees and FX. Readiness is computed from the anchor&apos;s{' '}
+          <code>stellar.toml</code> (<code>ANCHOR_QUOTE_SERVER</code> presence), the{' '}
+          <code>/info</code> assets and corridors the quote server advertises, and the outcome of
+          live probes recorded in the capability capture.
+        </p>
+        <p>
+          Anchors that are not SEP-38 ready fall back to the indicative tiers described above
+          (SEP-24, then SEP-6). Indicative and firm rates are never mixed in the same comparison
+          without the badge making the distinction visible.
         </p>
       </section>
     </div>
