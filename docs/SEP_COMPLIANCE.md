@@ -60,6 +60,14 @@ Registered anchors ([`constants/anchors.ts`](../constants/anchors.ts)). Capabili
 > capability read that stops at the TOML kept scoring it as supported. EUR has no anchor now and
 > the `usdc-eur` corridor is hidden from selectors until one serves it.
 
+### SEP-38 readiness
+
+An anchor is SEP-38 ready when its `stellar.toml` publishes `ANCHOR_QUOTE_SERVER` and the quote
+server's `/info` lists the asset and fiat pair of the corridor. Readiness decides whether a
+corridor can show a **firm** quote or only an **indicative** estimate (fees plus a reference
+price). The per-anchor result is the SEP-38 column in the matrix above and the one-line summary
+below; there is no separate readiness page or endpoint yet.
+
 ### SEP-38 availability, in one line
 
 **Zeam Money is the only registered anchor advertising a quote server** — and its `/info` offers
@@ -67,14 +75,6 @@ USDC and BRL only. No anchor serves a firm quote for **NGN**, so the USDC→NGN 
 pricing plus SEP-24 execution, and is labelled as such in the UI. Zeam's SEP-38 also offers no
 **ZAR**, despite the registry listing it on the `usdc-zar` corridor; SEP-24 may serve ZAR
 independently, so that is flagged in `constants/anchors.ts` rather than resolved by guesswork.
-
-### SEP-38 readiness
-
-An anchor is SEP-38 ready when its `stellar.toml` publishes `ANCHOR_QUOTE_SERVER` and the quote
-server's `/info` lists the asset and fiat pair of the corridor. Readiness decides whether a
-corridor can show a **firm** quote or only an **indicative** estimate (fees plus a reference
-price). The per-anchor result is the SEP-38 column in the matrix above and the one-line summary
-above; there is no separate readiness page or endpoint yet.
 
 ## Notes
 
